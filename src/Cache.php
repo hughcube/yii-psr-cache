@@ -3,19 +3,17 @@
 namespace Hughcube\YiiPsrCache;
 
 use Psr\SimpleCache\CacheInterface as PsrCacheInterface;
-use yii\caching\Cache as YiiCache;
-use yii\di\Instance;
 
 class Cache implements PsrCacheInterface
 {
-    /** @var YiiCache */
+    /** @var \yii\caching\CacheInterface | \yii\cache\CacheInterface */
     protected $handler;
 
     /**
      * Cache constructor
-     * @param YiiCache $handler
+     * @param \yii\caching\CacheInterface | \yii\cache\CacheInterface $handler
      */
-    public function __construct(YiiCache $handler)
+    public function __construct($handler)
     {
         $this->handler = $handler;
     }
@@ -26,7 +24,7 @@ class Cache implements PsrCacheInterface
      */
     public function set($key, $value, $ttl = null)
     {
-        return $this->getHandler()->set($key, $value, $ttl);
+        return true == $this->getHandler()->set($key, $value, $ttl);
     }
 
     /**
@@ -46,7 +44,19 @@ class Cache implements PsrCacheInterface
      */
     public function clear()
     {
-        return $this->getHandler()->flush();
+        $handler = $this->getHandler();
+
+        /**
+         * yii 2.0.x, 2.1.x
+         */
+        if (method_exists($handler, 'flush')){
+            return $this->getHandler()->flush();
+        }
+
+        /**
+         * yii 3.x
+         */
+        return $this->getHandler()->clear();
     }
 
     /**
@@ -57,12 +67,35 @@ class Cache implements PsrCacheInterface
     {
         /** @var string[] $keys */
 
-        $results = $this->getHandler()->multiGet($keys);
+        $handler = $this->getHandler();
 
-        foreach($results as $key => $result){
-            if (empty($result)){
-                $results[$key] = $default;
+        /**
+         * yii 2.1.x
+         */
+        if (method_exists($handler, 'multiGet')){
+            $results = $handler->multiGet($keys);
+        }//
+
+        /**
+         * yii 2.0.x
+         */
+        elseif (method_exists($handler, 'mget')){
+            $results = $handler->mget($keys);
+        }//
+
+        /**
+         * yii 3.x
+         */
+        else{
+            $results = $handler->getMultiple($keys, $default);
+        }
+
+        foreach($keys as $key){
+            if (isset($results[$key])){
+                continue;
             }
+
+            $results[$key] = $default;
         }
 
         return $results;
@@ -74,9 +107,29 @@ class Cache implements PsrCacheInterface
      */
     public function setMultiple($values, $ttl = null)
     {
-        $failedKeys = $this->getHandler()->multiSet($values, $ttl);
+        /** @var array $values */
 
-        return empty($failedKeys);
+        $handler = $this->getHandler();
+
+        /**
+         * yii 2.1.x
+         */
+        if (method_exists($handler, 'multiSet')){
+            return 0 >= count($handler->multiSet($values, $ttl));
+        }//
+
+        /**
+         * yii 2.0.x
+         */
+        if (method_exists($handler, 'mset')){
+            return 0 >= count($handler->mset($values, $ttl));
+        }//
+
+        /**
+         * yii 3.x
+         */
+        return $handler->setMultiple($values, $ttl);
+
     }
 
     /**
@@ -85,11 +138,23 @@ class Cache implements PsrCacheInterface
      */
     public function deleteMultiple($keys)
     {
-        foreach($keys as $key){
-            $this->delete($key);
+        $handler = $this->getHandler();
+
+        /**
+         * yii 2.0.x, 2.1.x
+         */
+        if (!method_exists($handler, 'deleteMultiple')){
+            foreach($keys as $key){
+                $this->delete($key);
+            }
+
+            return true;
         }
 
-        return true;
+        /**
+         * yii 3.x
+         */
+        return $handler->deleteMultiple($keys);
     }
 
     /**
@@ -107,19 +172,23 @@ class Cache implements PsrCacheInterface
      */
     public function has($key)
     {
-        return true == $this->getHandler()->exists($key);
-    }
+        $handler = $this->getHandler();
 
-    /**
-     * @return YiiCache
-     * @throws \yii\base\InvalidConfigException
-     */
-    public function getHandler()
-    {
-        if (!$this->handler instanceof YiiCache){
-            $this->handler = Instance::ensure($this->handler, YiiCache::class);
+        /**
+         * yii 2.0.x, 2.1.x
+         */
+        if (method_exists($handler, 'exists')){
+            return true == $this->getHandler()->exists($key);
         }
 
+        /**
+         * yii 3.x
+         */
+        return true == $handler->has($key);
+    }
+
+    public function getHandler()
+    {
         return $this->handler;
     }
 }
