@@ -1,6 +1,4 @@
 {
-  "minimum-stability": "dev",
-  "prefer-stable": true,
   "name": "hughcube/yii-psr-cache",
   "description": "The cache extension for the Yii framework",
   "license": "MIT",
@@ -26,13 +24,6 @@
   "autoload-dev": {
     "psr-4": {
       "Hughcube\\YiiPsrCache\\Tests\\": "tests"
-    }
-  },
-  "config": {
-    "fxp-asset": {
-      "vcs-driver-options": {
-        "github-no-api": true
-      }
     }
   }
 }
