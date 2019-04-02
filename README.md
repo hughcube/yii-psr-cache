@@ -1,6 +1,6 @@
 <h1 align="center"> yii-psr-cache </h1>
 
-yii-psr-cache [![Build Status](https://travis-ci.com/hughcube/yii-psr-cache.svg?branch=master)](https://travis-ci.com/hughcube/yii-psr-cache)
+yii-psr-cache [![Build Status](https://travis-ci.com/hughcube/yii-psr-cache.svg?branch=1.0)](https://travis-ci.com/hughcube/yii-psr-cache)
 
 
 ## Installing
